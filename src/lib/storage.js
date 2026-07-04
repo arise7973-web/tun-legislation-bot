@@ -2,12 +2,15 @@
 // This file is our "database". Instead of a complicated database program,
 // we save everything as simple .json files inside the /data folder.
 // Every time we need to read or save data, we use the functions below.
+//
+// config.json also lives in /data (not the project root) so that on hosts
+// like Railway, mounting one persistent volume at /app/data keeps your
+// settings, resolutions, templates, and counters all safe across redeploys.
 
 const fs = require('fs');
 const path = require('path');
 
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
-const ROOT_DIR = path.join(__dirname, '..', '..');
 
 function readJSON(filename) {
   const filePath = path.join(DATA_DIR, filename);
@@ -22,13 +25,13 @@ function writeJSON(filename, data) {
 }
 
 function readConfig() {
-  const filePath = path.join(ROOT_DIR, 'config.json');
+  const filePath = path.join(DATA_DIR, 'config.json');
   const raw = fs.readFileSync(filePath, 'utf8');
   return JSON.parse(raw);
 }
 
 function writeConfig(config) {
-  const filePath = path.join(ROOT_DIR, 'config.json');
+  const filePath = path.join(DATA_DIR, 'config.json');
   fs.writeFileSync(filePath, JSON.stringify(config, null, 2), 'utf8');
 }
 
