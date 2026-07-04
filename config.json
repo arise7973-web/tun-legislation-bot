@@ -1,0 +1,68 @@
+{
+  "roles": {
+    "admin": [
+      "1399489019494142013",
+      "1399488812085809212"
+    ],
+    "gaVoter": [
+      "1393450122750464043"
+    ],
+    "sponsorEligible": [],
+    "gaReviewer": []
+  },
+  "channels": {
+    "review": "1522690514678321344",
+    "debate": "1522690748716290109",
+    "voting": "1522690594563031220",
+    "archive": "1522690623436751039",
+    "audit": "1522690693187764374",
+    "notifications": "1522690748716290109"
+  },
+  "voteWeights": {},
+  "quorumPercent": 40,
+  "majorityPercent": 50,
+  "supermajorityPercent": 67,
+  "debateDurationMinutes": 1440,
+  "votingDurationMinutes": 1440,
+  "sponsorsRequired": 2,
+  "allowVoteChanges": true,
+  "publicVoting": true,
+  "liveResultsDuringVote": true,
+  "dmNotifications": true,
+  "oneResolutionPerMember": true,
+  "resolutionNumbering": {
+    "prefix": "UNGA",
+    "format": "{prefix}/{year}/{seq}",
+    "resetYearly": true
+  },
+  "securityCouncil": {
+    "roles": {
+      "member": [
+        "1438259031918772436",
+        "1407904671846105138"
+      ],
+      "permanentMember": [
+        "1407904671846105138"
+      ],
+      "reviewer": []
+    },
+    "channels": {
+      "review": "1523011384399630368",
+      "debate": "1523012155325157376",
+      "voting": "1522982053078106263",
+      "archive": "1522690623436751039"
+    },
+    "quorumPercent": 30,
+    "majorityPercent": 50,
+    "supermajorityPercent": 67,
+    "debateDurationMinutes": 1440,
+    "votingDurationMinutes": 1440,
+    "veto": {
+      "enabled": true,
+      "immediatelyTerminates": true,
+      "allowOverride": false,
+      "overrideThresholdPercent": 66.7,
+      "overrideVotingDurationMinutes": 1440
+    }
+  }
+}

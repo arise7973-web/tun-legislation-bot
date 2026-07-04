@@ -1,0 +1,139 @@
+[
+  {
+    "name": "Military Intervention",
+    "fields": [
+      "Target",
+      "Purpose",
+      "Objectives",
+      "Duration",
+      "Funding"
+    ],
+    "enabled": true,
+    "requiresSupermajority": true,
+    "allowedRole": null
+  },
+  {
+    "name": "Alliance Embargo",
+    "fields": [
+      "Target",
+      "Purpose",
+      "Duration",
+      "Notes"
+    ],
+    "enabled": true,
+    "requiresSupermajority": false,
+    "allowedRole": null,
+    "body": "GA",
+    "vetoable": true
+  },
+  {
+    "name": "Mass Espionage Attack",
+    "fields": [
+      "Target",
+      "Purpose",
+      "Duration"
+    ],
+    "enabled": true,
+    "requiresSupermajority": false,
+    "allowedRole": null,
+    "body": "Both",
+    "vetoable": true
+  },
+  {
+    "name": "Join Global War",
+    "fields": [
+      "Target",
+      "Purpose"
+    ],
+    "enabled": true,
+    "requiresSupermajority": false,
+    "allowedRole": null,
+    "body": "SC",
+    "vetoable": true
+  },
+  {
+    "name": "Membership Suspension",
+    "fields": [
+      "Nation",
+      "Reason",
+      "Suspension Length",
+      "Condition(s) for Reinstatement"
+    ],
+    "enabled": true,
+    "requiresSupermajority": false,
+    "allowedRole": null,
+    "body": "GA",
+    "vetoable": true
+  },
+  {
+    "name": "Membership Expulsion",
+    "fields": [
+      "Nation",
+      "Reason",
+      "Evidence/Context",
+      "Effective Date"
+    ],
+    "enabled": true,
+    "requiresSupermajority": true,
+    "allowedRole": null,
+    "body": "GA",
+    "vetoable": true
+  },
+  {
+    "name": "Constitutional Amendment",
+    "fields": [
+      "Article",
+      "Current Text",
+      "Proposed Text",
+      "Reason for Amendment",
+      "Expected Impact"
+    ],
+    "enabled": true,
+    "requiresSupermajority": true,
+    "allowedRole": null,
+    "body": "GA",
+    "vetoable": true
+  },
+  {
+    "name": "Vote of Confidence",
+    "fields": [
+      "Official",
+      "Position",
+      "Reason"
+    ],
+    "enabled": true,
+    "requiresSupermajority": false,
+    "allowedRole": null,
+    "body": "GA",
+    "vetoable": true
+  },
+  {
+    "name": "Vote of No Confidence",
+    "fields": [
+      "Official",
+      "Position",
+      "Grounds",
+      "Evidence"
+    ],
+    "enabled": true,
+    "requiresSupermajority": false,
+    "allowedRole": null,
+    "body": "GA",
+    "vetoable": true
+  },
+  {
+    "name": "Economic Policy",
+    "fields": [
+      "Policy Name (e.g. Tax Changes",
+      "Grant Policy)",
+      "Description",
+      "Justification",
+      "Effective Date"
+    ],
+    "enabled": true,
+    "requiresSupermajority": false,
+    "allowedRole": null,
+    "body": "GA",
+    "vetoable": true
+  }
+]

@@ -1,0 +1,333 @@
+[
+  {
+    "number": "UNGA/2026/001",
+    "title": "Military Intervention — Samurai",
+    "templateName": "Military Intervention",
+    "fields": {
+      "Target": "Samurai",
+      "Purpose": "They keep raiding our allies",
+      "Objectives": "To deter pirates",
+      "Duration": "10 days",
+      "Funding": "$3,000,000,000"
+    },
+    "sponsors": [
+      "1414307629257330781",
+      "1431974289736994837"
+    ],
+    "status": "Failed",
+    "submittedBy": "1414307629257330781",
+    "submittedByTag": "joe4.real",
+    "createdAt": 1783108693593,
+    "debate": {
+      "startedAt": 1783114039856,
+      "endsAt": 1783200439856,
+      "closed": false
+    },
+    "vote": {
+      "ballots": {
+        "1414307629257330781": {
+          "choice": "yes",
+          "weight": 3,
+          "votedAt": 1783114339215
+        },
+        "1457062271003131944": {
+          "choice": "no",
+          "weight": 1,
+          "votedAt": 1783114648623
+        },
+        "1431974289736994837": {
+          "choice": "no",
+          "weight": 3,
+          "votedAt": 1783114688762
+        },
+        "1493110499615834315": {
+          "choice": "yes",
+          "weight": 1,
+          "votedAt": 1783114736532
+        }
+      },
+      "eligibleCount": 69,
+      "endsAt": 1783200517990,
+      "requiresSupermajority": true,
+      "closed": true,
+      "messageId": "1522715722810130565",
+      "channelId": "1522690594563031220"
+    },
+    "reviewNote": "Failed — quorum not met.",
+    "archivedAt": 1783114818813
+  },
+  {
+    "number": "UNGA/2026/002",
+    "title": "Military Intervention — Leviathan",
+    "templateName": "Military Intervention",
+    "fields": {
+      "Target": "Leviathan",
+      "Purpose": "Jubysgus",
+      "Objectives": "sdnyudhysdbgyusg",
+      "Duration": "10 days",
+      "Funding": "$50B"
+    },
+    "sponsors": [],
+    "status": "Awaiting Sponsors",
+    "submittedBy": "1414307629257330781",
+    "submittedByTag": "joe4.real",
+    "createdAt": 1783157083087,
+    "body": "GA",
+    "vetoable": true
+  },
+  {
+    "number": "UNGA/2026/003",
+    "title": "Alliance Embargo — Eclipse",
+    "templateName": "Alliance Embargo",
+    "fields": {
+      "Target": "Eclipse",
+      "Purpose": "To prevent their influence",
+      "Duration": "5 years",
+      "Notes": "uiehogihsndjfj"
+    },
+    "sponsors": [
+      "1414307629257330781",
+      "1431974289736994837",
+      "1457062271003131944"
+    ],
+    "status": "Failed",
+    "submittedBy": "1414307629257330781",
+    "submittedByTag": "joe4.real",
+    "createdAt": 1783157379050,
+    "body": "GA",
+    "vetoable": true,
+    "debate": {
+      "startedAt": 1783157993908,
+      "endsAt": 1783589993908,
+      "closed": false
+    },
+    "tracks": {
+      "GA": {
+        "label": "General Assembly",
+        "ballots": {
+          "1414307629257330781": {
+            "choice": "yes",
+            "weight": 3,
+            "votedAt": 1783159515404
+          }
+        },
+        "eligibleCount": 69,
+        "quorumPercent": 50,
+        "thresholdPercent": 50,
+        "requiresSupermajority": false,
+        "vetoEnabled": false,
+        "startedAt": 1783158057629,
+        "endsAt": 1783244457629,
+        "closed": true,
+        "result": "Failed",
+        "vetoedBy": null,
+        "channelId": "1522690594563031220",
+        "messageId": "1522900017436823565",
+        "tally": {
+          "votesCast": 1,
+          "participation": 1.4492753623188406,
+          "weightedYes": 3,
+          "weightedNo": 0,
+          "weightedAbstain": 0,
+          "yesShare": 100
+        }
+      }
+    },
+    "archivedAt": 1783160547836
+  },
+  {
+    "number": "UNGA/2026/004",
+    "title": "Mass Espionage Attack — Aarrgh",
+    "templateName": "Mass Espionage Attack",
+    "fields": {
+      "Target": "Aarrgh",
+      "Purpose": "uhidunavd",
+      "Duration": "19 years"
+    },
+    "sponsors": [
+      "1414307629257330781",
+      "1431974289736994837",
+      "1457062271003131944"
+    ],
+    "status": "Vetoed",
+    "submittedBy": "1414307629257330781",
+    "submittedByTag": "joe4.real",
+    "createdAt": 1783159189766,
+    "body": "Both",
+    "vetoable": true,
+    "debate": {
+      "startedAt": 1783159328808,
+      "endsAt": 1783591328808,
+      "closed": false
+    },
+    "tracks": {
+      "GA": {
+        "label": "General Assembly",
+        "ballots": {
+          "1414307629257330781": {
+            "choice": "yes",
+            "weight": 3,
+            "votedAt": 1783166804358
+          }
+        },
+        "eligibleCount": 69,
+        "quorumPercent": 50,
+        "thresholdPercent": 50,
+        "requiresSupermajority": false,
+        "vetoEnabled": false,
+        "startedAt": 1783166769949,
+        "endsAt": 1783253169949,
+        "closed": true,
+        "result": "Moot (Vetoed by Security Council)",
+        "vetoedBy": null,
+        "channelId": "1522690594563031220",
+        "messageId": "1522936556657184950"
+      },
+      "SC": {
+        "label": "Security Council",
+        "ballots": {},
+        "eligibleCount": 10,
+        "quorumPercent": 50,
+        "thresholdPercent": 50,
+        "requiresSupermajority": false,
+        "vetoEnabled": true,
+        "startedAt": 1783166770482,
+        "endsAt": 1783253170482,
+        "closed": true,
+        "result": "Vetoed",
+        "vetoedBy": {
+          "id": "1414307629257330781",
+          "tag": "joe4.real",
+          "reason": null,
+          "timestamp": 1783166822178
+        },
+        "channelId": null,
+        "messageId": null,
+        "tally": {
+          "votesCast": 0,
+          "participation": 0,
+          "weightedYes": 0,
+          "weightedNo": 0,
+          "weightedAbstain": 0,
+          "yesShare": 0
+        }
+      }
+    },
+    "archivedAt": 1783166822892
+  },
+  {
+    "number": "UNGA/2026/005",
+    "title": "Join Global War — Everyone",
+    "templateName": "Join Global War",
+    "fields": {
+      "Target": "Everyone",
+      "Purpose": "hguidlhfiojg"
+    },
+    "sponsors": [
+      "1414307629257330781",
+      "1431974289736994837",
+      "1374741098190344213"
+    ],
+    "status": "Failed",
+    "submittedBy": "1414307629257330781",
+    "submittedByTag": "joe4.real",
+    "createdAt": 1783177020203,
+    "body": "SC",
+    "vetoable": true,
+    "debate": {
+      "startedAt": 1783177321313,
+      "endsAt": 1783263721313,
+      "closed": false
+    },
+    "tracks": {
+      "SC": {
+        "label": "Security Council",
+        "ballots": {},
+        "eligibleCount": 10,
+        "quorumPercent": 50,
+        "thresholdPercent": 50,
+        "requiresSupermajority": false,
+        "vetoEnabled": true,
+        "startedAt": 1783177398204,
+        "endsAt": 1783263798204,
+        "closed": true,
+        "result": "Failed",
+        "vetoedBy": null,
+        "channelId": null,
+        "messageId": null,
+        "tally": {
+          "votesCast": 0,
+          "participation": 0,
+          "weightedYes": 0,
+          "weightedNo": 0,
+          "weightedAbstain": 0,
+          "yesShare": 0
+        }
+      }
+    },
+    "archivedAt": 1783177832009
+  },
+  {
+    "number": "UNGA/2026/006",
+    "title": "Join Global War — Everyone",
+    "templateName": "Join Global War",
+    "fields": {
+      "Target": "Everyone",
+      "Purpose": "cjksnadv;jlkv"
+    },
+    "sponsors": [
+      "1414307629257330781",
+      "1431974289736994837",
+      "1374741098190344213"
+    ],
+    "status": "Vetoed",
+    "submittedBy": "1414307629257330781",
+    "submittedByTag": "joe4.real",
+    "createdAt": 1783177910169,
+    "body": "SC",
+    "vetoable": true,
+    "debate": {
+      "startedAt": 1783178154554,
+      "endsAt": 1783264554554,
+      "closed": false
+    },
+    "tracks": {
+      "SC": {
+        "label": "Security Council",
+        "ballots": {
+          "1414307629257330781": {
+            "choice": "yes",
+            "weight": 3,
+            "votedAt": 1783178518802
+          }
+        },
+        "eligibleCount": 10,
+        "quorumPercent": 50,
+        "thresholdPercent": 50,
+        "requiresSupermajority": false,
+        "vetoEnabled": true,
+        "startedAt": 1783178210760,
+        "endsAt": 1783264610760,
+        "closed": true,
+        "result": "Vetoed",
+        "vetoedBy": {
+          "id": "1414307629257330781",
+          "tag": "joe4.real",
+          "reason": null,
+          "timestamp": 1783178530098
+        },
+        "channelId": "1522982053078106263",
+        "messageId": "1522984541889892585",
+        "tally": {
+          "votesCast": 1,
+          "participation": 10,
+          "weightedYes": 3,
+          "weightedNo": 0,
+          "weightedAbstain": 0,
+          "yesShare": 100
+        }
+      }
+    },
+    "archivedAt": 1783178531357
+  }
+]
