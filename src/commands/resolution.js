@@ -1,7 +1,7 @@
 // /resolution command
 // Lets anyone look up a resolution by number, or list recent ones.
 
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getAllResolutions, findResolution } = require('../lib/resolutions');
 const { resolutionEmbed } = require('../lib/embeds');
 
@@ -59,8 +59,16 @@ module.exports = {
         return interaction.reply({ content: 'No resolutions found.', ephemeral: true });
       }
 
-      const lines = list.map((r) => `**${r.number}** — ${r.title} — *${r.status}*`);
-      return interaction.reply({ content: lines.join('\n') });
+      // Each title is truncated per line so this can never approach
+      // Discord's 2000-character message content limit, no matter how
+      // long resolution titles get.
+      const lines = list.map((r) => `**${r.number}** — ${r.title.slice(0, 80)} — *${r.status}*`);
+      const embed = new EmbedBuilder()
+        .setTitle('📋 Recent Resolutions')
+        .setColor(0x5865f2)
+        .setDescription(lines.join('\n').slice(0, 4000));
+
+      return interaction.reply({ embeds: [embed] });
     }
   },
 };
