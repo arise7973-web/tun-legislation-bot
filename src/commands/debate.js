@@ -8,6 +8,7 @@ const { getConfig } = require('../lib/config');
 const { isAdmin } = require('../lib/permissions');
 const { findResolution } = require('../lib/resolutions');
 const { openVoting } = require('../lib/voting');
+const { hasOpenAmendments } = require('../lib/amendments');
 
 module.exports = {
   category: 'Legislation',
@@ -35,6 +36,9 @@ module.exports = {
     }
     if (resolution.status !== 'Debate') {
       return interaction.reply({ content: `❌ This resolution is not currently in debate (status: ${resolution.status}).`, ephemeral: true });
+    }
+    if (hasOpenAmendments(resolution)) {
+      return interaction.reply({ content: `❌ **${resolution.number}** still has amendments in Debate or Voting. Resolve those first with \`/amendment\` before closing debate.`, ephemeral: true });
     }
 
     await interaction.deferReply({ ephemeral: true });
