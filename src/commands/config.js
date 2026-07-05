@@ -72,7 +72,8 @@ module.exports = {
               { name: 'Security Council Review', value: 'securityCouncil.channels.review' },
               { name: 'Security Council Debate', value: 'securityCouncil.channels.debate' },
               { name: 'Security Council Voting', value: 'securityCouncil.channels.voting' },
-              { name: 'Security Council Archive', value: 'securityCouncil.channels.archive' }
+              { name: 'Security Council Archive', value: 'securityCouncil.channels.archive' },
+              { name: 'Security Council Notifications', value: 'securityCouncil.channels.notifications' }
             )
         )
         .addChannelOption((opt) => opt.setName('channel').setDescription('The Discord channel').setRequired(true))
@@ -126,7 +127,8 @@ module.exports = {
               { name: 'Veto Enabled', value: 'securityCouncil.veto.enabled' },
               { name: 'Veto Immediately Ends Vote', value: 'securityCouncil.veto.immediatelyTerminates' },
               { name: 'Allow Veto Override', value: 'securityCouncil.veto.allowOverride' },
-              { name: 'Amendments Enabled', value: 'amendments.enabled' }
+              { name: 'Amendments Enabled', value: 'amendments.enabled' },
+              { name: 'Announcement Mentions Enabled', value: 'announcements.mentionsEnabled' }
             )
         )
         .addBooleanOption((opt) => opt.setName('value').setDescription('On (true) or off (false)').setRequired(true))
@@ -150,6 +152,30 @@ module.exports = {
             .setRequired(true)
         )
         .addBooleanOption((opt) => opt.setName('reset_yearly').setDescription('Restart numbering each year?').setRequired(true))
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('set-announcement-mention')
+        .setDescription('Choose who gets pinged on important announcements for a body')
+        .addStringOption((opt) =>
+          opt
+            .setName('body')
+            .setDescription('Which body this applies to')
+            .setRequired(true)
+            .addChoices({ name: 'General Assembly', value: 'GA' }, { name: 'Security Council', value: 'SC' })
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName('type')
+            .setDescription('Who to mention')
+            .setRequired(true)
+            .addChoices(
+              { name: 'None (no mention)', value: 'none' },
+              { name: '@everyone', value: 'everyone' },
+              { name: 'A specific role', value: 'role' }
+            )
+        )
+        .addRoleOption((opt) => opt.setName('role').setDescription('The role to mention (only needed if type is "A specific role")').setRequired(false))
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 
@@ -244,6 +270,29 @@ module.exports = {
       const resetYearly = interaction.options.getBoolean('reset_yearly');
       setValue('resolutionNumbering', { prefix, format, resetYearly });
       return interaction.reply({ content: `✅ Numbering format updated: \`${format}\``, ephemeral: true });
+    }
+
+    if (sub === 'set-announcement-mention') {
+      const body = interaction.options.getString('body');
+      const type = interaction.options.getString('type');
+      const role = interaction.options.getRole('role');
+
+      if (type === 'role' && !role) {
+        return interaction.reply({ content: '❌ Please specify a role when type is "A specific role".', ephemeral: true });
+      }
+
+      const path = body === 'SC' ? 'announcements.sc' : 'announcements.ga';
+      setValue(path, { mentionType: type, roleId: type === 'role' ? role.id : '' });
+
+      const description = type === 'none' ? 'nobody' : type === 'everyone' ? '@everyone' : `<@&${role.id}>`;
+      const bodyLabel = body === 'SC' ? 'Security Council' : 'General Assembly';
+      const mentionsOffWarning = getConfig().announcements.mentionsEnabled
+        ? ''
+        : '\n⚠️ Note: "Announcement Mentions Enabled" is currently OFF, so no mention will actually be sent yet - turn it on with `/config set-toggle key:Announcement Mentions Enabled value:True`.';
+      return interaction.reply({
+        content: `✅ ${bodyLabel} announcements will now mention: ${description}.${mentionsOffWarning}`,
+        ephemeral: true,
+      });
     }
   },
 };
