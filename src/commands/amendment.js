@@ -4,7 +4,7 @@
 // amend from a dropdown, then fill in the text via a pop-up form. Amendment
 // votes use whichever body (GA or SC) the resolution itself belongs to.
 
-const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, EmbedBuilder } = require('discord.js');
 const { getConfig } = require('../lib/config');
 const { isAdmin, isSponsorEligible } = require('../lib/permissions');
 const { findResolution, upsertResolution } = require('../lib/resolutions');
@@ -106,9 +106,14 @@ module.exports = {
       }
       const lines = amendments.map((a) => {
         const label = AMENDMENT_TYPE_LABELS[a.type] || a.type;
-        return `**${a.id}** — ${label} → ${a.targetField} — by <@${a.sponsor}> — **${a.status}**`;
+        return `**${a.id}** — ${label} → ${a.targetField.slice(0, 60)} — by <@${a.sponsor}> — **${a.status}**`;
       });
-      return interaction.reply({ content: lines.join('\n'), embeds: [resolutionEmbed(resolution)], ephemeral: true });
+      const listEmbed = new EmbedBuilder()
+        .setTitle(`📝 Amendments on ${resolution.number}`)
+        .setColor(0x5865f2)
+        .setDescription(lines.join('\n').slice(0, 4000));
+
+      return interaction.reply({ embeds: [listEmbed, resolutionEmbed(resolution)], ephemeral: true });
     }
 
     // Everything below requires finding the specific amendment.
