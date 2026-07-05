@@ -99,7 +99,11 @@ module.exports = {
               { name: 'SC Debate duration (minutes)', value: 'securityCouncil.debateDurationMinutes' },
               { name: 'SC Voting duration (minutes)', value: 'securityCouncil.votingDurationMinutes' },
               { name: 'Veto Override Threshold %', value: 'securityCouncil.veto.overrideThresholdPercent' },
-              { name: 'Veto Override Voting duration (minutes)', value: 'securityCouncil.veto.overrideVotingDurationMinutes' }
+              { name: 'Veto Override Voting duration (minutes)', value: 'securityCouncil.veto.overrideVotingDurationMinutes' },
+              { name: 'Amendment Quorum %', value: 'amendments.quorumPercent' },
+              { name: 'Amendment Majority %', value: 'amendments.majorityPercent' },
+              { name: 'Amendment Debate duration (minutes)', value: 'amendments.debateDurationMinutes' },
+              { name: 'Amendment Voting duration (minutes)', value: 'amendments.votingDurationMinutes' }
             )
         )
         .addNumberOption((opt) => opt.setName('value').setDescription('New numeric value').setRequired(true))
@@ -121,7 +125,8 @@ module.exports = {
               { name: 'One resolution per member at a time', value: 'oneResolutionPerMember' },
               { name: 'Veto Enabled', value: 'securityCouncil.veto.enabled' },
               { name: 'Veto Immediately Ends Vote', value: 'securityCouncil.veto.immediatelyTerminates' },
-              { name: 'Allow Veto Override', value: 'securityCouncil.veto.allowOverride' }
+              { name: 'Allow Veto Override', value: 'securityCouncil.veto.allowOverride' },
+              { name: 'Amendments Enabled', value: 'amendments.enabled' }
             )
         )
         .addBooleanOption((opt) => opt.setName('value').setDescription('On (true) or off (false)').setRequired(true))
