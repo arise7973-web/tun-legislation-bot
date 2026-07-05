@@ -23,9 +23,16 @@ const { initializeDataFiles } = require('./lib/storage');
 const { isEligibleVoter, isSCMember, isSCPermanentMember, getVoteWeight } = require('./lib/permissions');
 const { findTemplate, findResolution, getAllResolutions, upsertResolution, findActiveResolutionByMember } = require('./lib/resolutions');
 const { nextResolutionNumber } = require('./lib/numbering');
-const { resolutionEmbed } = require('./lib/embeds');
-const { logAudit, notify } = require('./lib/audit');
-const { refreshTrackMessage, castVeto, getReviewChannelIds } = require('./lib/voting');
+const { resolutionEmbed, amendmentEmbed } = require('./lib/embeds');
+const { logAudit, notify, dmUser } = require('./lib/audit');
+const { refreshTrackMessage, castVeto, getReviewChannelIds, getDebateInfo } = require('./lib/voting');
+const {
+  AMENDMENT_TYPE_LABELS,
+  AMENDMENT_TYPE_MODAL_CONFIG,
+  isAmendmentEligibleVoter,
+  createAmendment,
+  refreshAmendmentMessage,
+} = require('./lib/amendments');
 const { startScheduler } = require('./lib/scheduler');
 const { renderHelpPage } = require('./lib/help');
 
@@ -81,6 +88,31 @@ function buildResolutionModal(templateName, template, subcategory) {
   return modal;
 }
 
+// Builds the pop-up form for an amendment, once its type and target field
+// are already known. Both are baked into the modal's customId (double-colon
+// separated, each part URI-encoded) so we know them again on submit.
+function buildAmendmentModal(type, targetField, resolutionNumber) {
+  const typeConfig = AMENDMENT_TYPE_MODAL_CONFIG[type];
+  const modal = new ModalBuilder()
+    .setCustomId(`amendment_modal_${encodeURIComponent(type)}::${encodeURIComponent(targetField)}::${encodeURIComponent(resolutionNumber)}`)
+    .setTitle(`${AMENDMENT_TYPE_LABELS[type]} — ${targetField}`.slice(0, 45));
+
+  const originalInput = new TextInputBuilder()
+    .setCustomId('original_text')
+    .setLabel(typeConfig.originalLabel.slice(0, 45))
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(typeConfig.originalRequired);
+
+  const newInput = new TextInputBuilder()
+    .setCustomId('new_text')
+    .setLabel(typeConfig.newLabel.slice(0, 45))
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(typeConfig.newRequired);
+
+  modal.addComponents(new ActionRowBuilder().addComponents(originalInput), new ActionRowBuilder().addComponents(newInput));
+  return modal;
+}
+
 client.on('interactionCreate', async (interaction) => {
   try {
     // 0) Autocomplete: as the user types in a "number" field, suggest
@@ -88,6 +120,33 @@ client.on('interactionCreate', async (interaction) => {
     // nobody has to memorize a resolution number.
     if (interaction.isAutocomplete()) {
       const focused = interaction.options.getFocused(true);
+      const cmd = interaction.commandName;
+      const sub = interaction.options.getSubcommand(false);
+
+      if (focused.name === 'amendment_id') {
+        const numberValue = interaction.options.getString('number');
+        const resolution = numberValue ? findResolution(numberValue) : null;
+        let amendments = resolution ? resolution.amendments || [] : [];
+
+        if (sub === 'vote-start') amendments = amendments.filter((a) => a.status === 'Debate');
+        else if (sub === 'vote-close') amendments = amendments.filter((a) => a.status === 'Voting');
+        else if (sub === 'withdraw') amendments = amendments.filter((a) => a.status === 'Debate' || a.status === 'Voting');
+
+        const query = focused.value.toLowerCase();
+        amendments = amendments.filter(
+          (a) => a.id.toLowerCase().includes(query) || a.targetField.toLowerCase().includes(query)
+        );
+
+        return interaction
+          .respond(
+            amendments.slice(0, 25).map((a) => ({
+              name: `${a.id} — ${AMENDMENT_TYPE_LABELS[a.type] || a.type} → ${a.targetField} (${a.status})`.slice(0, 100),
+              value: a.id,
+            }))
+          )
+          .catch(() => {});
+      }
+
       if (focused.name !== 'number') {
         return interaction.respond([]);
       }
@@ -95,16 +154,14 @@ client.on('interactionCreate', async (interaction) => {
       const query = focused.value.toLowerCase();
       let list = getAllResolutions();
 
-      const cmd = interaction.commandName;
-      const sub = interaction.options.getSubcommand(false);
-
       if (cmd === 'sponsor') list = list.filter((r) => ['Draft', 'Awaiting Sponsors'].includes(r.status));
       else if (cmd === 'review') list = list.filter((r) => r.status === 'Under Administrative Review');
       else if (cmd === 'debate') list = list.filter((r) => r.status === 'Debate');
       else if (cmd === 'vote' && sub === 'start') list = list.filter((r) => r.status === 'Debate');
       else if (cmd === 'vote' && sub === 'close') list = list.filter((r) => r.status === 'Voting');
       else if (cmd === 'veto') list = list.filter((r) => r.tracks && r.tracks.SC);
-      // /resolution view: no filter - show everything, including archived.
+      else if (cmd === 'amendment' && sub === 'propose') list = list.filter((r) => r.status === 'Debate');
+      // /resolution view and /amendment list/vote-start/vote-close/withdraw: no extra filter here.
 
       list = list.filter(
         (r) =>
@@ -253,6 +310,107 @@ client.on('interactionCreate', async (interaction) => {
           .then((channel) => channel && channel.send({ embeds: [resolutionEmbed(resolution)] }))
           .catch((err) => console.error('Failed to post to review channel:', err));
       }
+      return;
+    }
+
+    // 5) Member picked which field an amendment applies to -> show the form
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('amendment_select_field_')) {
+      const rest = interaction.customId.replace('amendment_select_field_', '');
+      const lastUnderscore = rest.lastIndexOf('_');
+      const type = rest.slice(0, lastUnderscore);
+      const resolutionNumber = decodeURIComponent(rest.slice(lastUnderscore + 1));
+      const targetField = interaction.values[0];
+
+      const resolution = findResolution(resolutionNumber);
+      if (!resolution || resolution.status !== 'Debate') {
+        return interaction.update({ content: '❌ This resolution is no longer in debate; the amendment cannot be proposed.', components: [] });
+      }
+
+      return interaction.showModal(buildAmendmentModal(type, targetField, resolutionNumber));
+    }
+
+    // 6) Member submitted the amendment form -> create the amendment
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('amendment_modal_')) {
+      const raw = interaction.customId.replace('amendment_modal_', '');
+      const [rawType, rawField, rawNumber] = raw.split('::');
+      const type = decodeURIComponent(rawType);
+      const targetField = decodeURIComponent(rawField);
+      const resolutionNumber = decodeURIComponent(rawNumber);
+
+      const resolution = findResolution(resolutionNumber);
+      if (!resolution || resolution.status !== 'Debate') {
+        return interaction.reply({ content: '❌ This resolution is no longer in debate; the amendment cannot be submitted.', ephemeral: true });
+      }
+
+      const originalText = interaction.fields.getTextInputValue('original_text').trim() || null;
+      const newText = interaction.fields.getTextInputValue('new_text').trim() || null;
+
+      const amendment = createAmendment(resolution, { type, targetField, originalText, newText, sponsorId: interaction.user.id });
+
+      await interaction.reply({
+        content: `✅ Amendment **${amendment.id}** (${AMENDMENT_TYPE_LABELS[type]} → ${targetField}) proposed on **${resolution.number}**. Debate on it closes <t:${Math.floor(amendment.debate.endsAt / 1000)}:f>, after which voting opens automatically.`,
+        ephemeral: true,
+      });
+
+      const config = getConfig();
+      const debateInfo = getDebateInfo(resolution, config);
+      for (const channelId of debateInfo.channelIds) {
+        client.channels
+          .fetch(channelId)
+          .then(
+            (channel) =>
+              channel &&
+              channel.send({
+                content: `📝 A new amendment (**${amendment.id}**) has been proposed on **${resolution.number}** by ${interaction.user.tag}.`,
+                embeds: [amendmentEmbed(resolution, amendment)],
+              })
+          )
+          .catch((err) => console.error('Failed to post amendment to debate channel:', err));
+      }
+
+      logAudit(client, 'Amendment Proposed', `**${resolution.number}** ${amendment.id} (${AMENDMENT_TYPE_LABELS[type]} → ${targetField}) by ${interaction.user.tag}`).catch((err) => console.error(err));
+      if (resolution.submittedBy !== interaction.user.id) {
+        dmUser(client, resolution.submittedBy, `📝 A new amendment (${amendment.id}) has been proposed on your resolution **${resolution.number}**.`);
+      }
+      return;
+    }
+
+    // 7) Member clicked Yes/No/Abstain on an amendment voting card
+    // Button IDs look like: amendvote_<amendmentId>_<choice>_<number>
+    if (interaction.isButton() && interaction.customId.startsWith('amendvote_')) {
+      const parts = interaction.customId.split('_');
+      const amendmentId = parts[1];
+      const choice = parts[2];
+      const number = parts.slice(3).join('_');
+
+      const resolution = findResolution(number);
+      const amendment = resolution && (resolution.amendments || []).find((a) => a.id === amendmentId);
+      const config = getConfig();
+
+      if (!resolution || !amendment || amendment.status !== 'Voting' || !amendment.vote || amendment.vote.closed) {
+        return interaction.reply({ content: '❌ This amendment vote is not currently open.', ephemeral: true });
+      }
+
+      if (!isAmendmentEligibleVoter(interaction.member, resolution, config)) {
+        return interaction.reply({ content: '❌ You are not eligible to vote on this amendment.', ephemeral: true });
+      }
+
+      const alreadyVoted = amendment.vote.ballots[interaction.user.id];
+      if (alreadyVoted && !config.allowVoteChanges) {
+        return interaction.reply({ content: `You have already voted (${alreadyVoted.choice}). Vote changes are not allowed.`, ephemeral: true });
+      }
+
+      const weight = getVoteWeight(interaction.member, config);
+      amendment.vote.ballots[interaction.user.id] = { choice, weight, votedAt: Date.now() };
+      upsertResolution(resolution);
+
+      await interaction.reply({
+        content: alreadyVoted ? `✅ Your vote has been updated to **${choice}**.` : `✅ Your vote (**${choice}**) has been recorded.`,
+        ephemeral: true,
+      });
+
+      refreshAmendmentMessage(client, resolution, amendment).catch((err) => console.error('Failed to refresh amendment message:', err));
+      logAudit(client, 'Amendment Vote Cast', `${interaction.user.tag} voted on amendment ${amendment.id} of ${resolution.number}.`).catch((err) => console.error(err));
       return;
     }
 
