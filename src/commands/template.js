@@ -10,7 +10,7 @@
 // after choosing the template in /propose, and it's recorded on the
 // resolution and shown wherever the resolution is displayed.
 
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { getConfig } = require('../lib/config');
 const { isAdmin } = require('../lib/permissions');
 const { getAllTemplates, saveAllTemplates, findTemplate } = require('../lib/resolutions');
@@ -144,15 +144,59 @@ module.exports = {
       if (templates.length === 0) {
         return interaction.reply({ content: 'No templates exist yet. Use `/template create` to add one.', ephemeral: true });
       }
-      const lines = templates.map(
-        (t) =>
-          `**${t.name}** — ${t.enabled ? '✅ enabled' : '⛔ disabled'} — fields: ${t.fields.join(', ')}${
-            t.subcategories && t.subcategories.length ? ` — sub-categories: ${t.subcategories.join(', ')}` : ''
-          }${t.requiresSupermajority ? ' — requires supermajority' : ''}${
-            t.allowedRole ? ` — restricted to <@&${t.allowedRole}>` : ''
-          } — body: ${t.body || 'GA'}${(t.body || 'GA') !== 'GA' ? ` (vetoable: ${t.vetoable !== false})` : ''}`
+
+      // Each template becomes one embed field instead of one line of plain
+      // text - fields have a much higher combined limit (6000 chars, 25
+      // fields per embed) than a single message's content (2000 chars
+      // total), so this can't blow past Discord's limit as the list grows.
+      const fields = templates.map((t) => {
+        const details = [
+          `Fields: ${t.fields.join(', ')}`,
+          t.subcategories && t.subcategories.length ? `Sub-categories: ${t.subcategories.join(', ')}` : null,
+          t.requiresSupermajority ? 'Requires supermajority' : null,
+          t.allowedRole ? `Restricted to <@&${t.allowedRole}>` : null,
+          `Body: ${t.body || 'GA'}${(t.body || 'GA') !== 'GA' ? ` (vetoable: ${t.vetoable !== false})` : ''}`,
+        ]
+          .filter(Boolean)
+          .join('\n');
+
+        return {
+          name: `${t.enabled ? '✅' : '⛔'} ${t.name}`.slice(0, 256),
+          value: details.slice(0, 1024),
+        };
+      });
+
+      const MAX_FIELDS_PER_EMBED = 20;
+      const MAX_CHARS_PER_EMBED = 5000;
+
+      const fieldGroups = [];
+      let currentFields = [];
+      let currentChars = 0;
+      for (const field of fields) {
+        const fieldChars = field.name.length + field.value.length;
+        const wouldOverflow = currentFields.length >= MAX_FIELDS_PER_EMBED || currentChars + fieldChars > MAX_CHARS_PER_EMBED;
+        if (wouldOverflow && currentFields.length > 0) {
+          fieldGroups.push(currentFields);
+          currentFields = [];
+          currentChars = 0;
+        }
+        currentFields.push(field);
+        currentChars += fieldChars;
+      }
+      if (currentFields.length > 0) fieldGroups.push(currentFields);
+
+      // Discord allows at most 10 embeds per message.
+      const embeds = fieldGroups.slice(0, 10).map((group, i) =>
+        new EmbedBuilder()
+          .setTitle(i === 0 ? '📋 Resolution Templates' : undefined)
+          .setColor(0x5865f2)
+          .addFields(group)
       );
-      return interaction.reply({ content: lines.join('\n'), ephemeral: true });
+
+      const overflowNote =
+        fieldGroups.length > 10 ? `⚠️ Showing the first ${10 * MAX_FIELDS_PER_EMBED} templates - you have more configured than fit here.` : undefined;
+
+      return interaction.reply({ content: overflowNote, embeds, ephemeral: true });
     }
 
     if (sub === 'toggle') {
