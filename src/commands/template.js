@@ -3,6 +3,12 @@
 // Example: a "Military Intervention" template with fields Target, Purpose, Duration...
 // NOTE: Discord popup forms (modals) support a maximum of 5 fields, so each
 // template can have up to 5 fields for now.
+//
+// Templates can optionally have SUBCATEGORIES - e.g. an "Economic Policy"
+// template with subcategories "Tax Changes", "Grant Policy", "Bank Policy".
+// If a template has subcategories, members pick one from a dropdown right
+// after choosing the template in /propose, and it's recorded on the
+// resolution and shown wherever the resolution is displayed.
 
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { getConfig } = require('../lib/config');
@@ -18,12 +24,18 @@ module.exports = {
       sub
         .setName('create')
         .setDescription('Create a new resolution template')
-        .addStringOption((o) => o.setName('name').setDescription('Template name, e.g. Military Intervention').setRequired(true))
+        .addStringOption((o) => o.setName('name').setDescription('Template name, e.g. Economic Policy').setRequired(true))
         .addStringOption((o) =>
           o
             .setName('fields')
             .setDescription('Comma-separated field names (max 5), e.g. Target,Purpose,Duration,Funding,Notes')
             .setRequired(true)
+        )
+        .addStringOption((o) =>
+          o
+            .setName('subcategories')
+            .setDescription('Optional: comma-separated sub-categories, e.g. Tax Changes,Grant Policy,Bank Policy')
+            .setRequired(false)
         )
         .addBooleanOption((o) => o.setName('supermajority').setDescription('Require supermajority instead of simple majority?').setRequired(false))
         .addRoleOption((o) => o.setName('restrict_to_role').setDescription('Only members with this role may use this template').setRequired(false))
@@ -56,6 +68,20 @@ module.exports = {
         .setDescription('Delete a template')
         .addStringOption((o) => o.setName('name').setDescription('Template name').setRequired(true))
     )
+    .addSubcommand((sub) =>
+      sub
+        .setName('add-subcategory')
+        .setDescription('Add a sub-category to an existing template')
+        .addStringOption((o) => o.setName('name').setDescription('Template name').setRequired(true))
+        .addStringOption((o) => o.setName('subcategory').setDescription('Sub-category to add, e.g. Tax Changes').setRequired(true))
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('remove-subcategory')
+        .setDescription('Remove a sub-category from a template')
+        .addStringOption((o) => o.setName('name').setDescription('Template name').setRequired(true))
+        .addStringOption((o) => o.setName('subcategory').setDescription('Sub-category to remove').setRequired(true))
+    )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 
   async execute(interaction) {
@@ -78,6 +104,15 @@ module.exports = {
         return interaction.reply({ content: `❌ A template named **${name}** already exists.`, ephemeral: true });
       }
 
+      const subcategoriesRaw = interaction.options.getString('subcategories');
+      const subcategories = subcategoriesRaw
+        ? subcategoriesRaw.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+
+      if (subcategories.length > 25) {
+        return interaction.reply({ content: '❌ A template can have at most 25 sub-categories (a Discord dropdown limit).', ephemeral: true });
+      }
+
       const supermajority = interaction.options.getBoolean('supermajority') || false;
       const restrictRole = interaction.options.getRole('restrict_to_role');
       const body = interaction.options.getString('body') || 'GA';
@@ -87,6 +122,7 @@ module.exports = {
       templates.push({
         name,
         fields,
+        subcategories,
         enabled: true,
         requiresSupermajority: supermajority,
         allowedRole: restrictRole ? restrictRole.id : null,
@@ -96,7 +132,9 @@ module.exports = {
       saveAllTemplates(templates);
 
       return interaction.reply({
-        content: `✅ Template **${name}** created with fields: ${fields.join(', ')}. Body: ${body}${body !== 'GA' ? ` (vetoable: ${vetoable === null ? true : vetoable})` : ''}`,
+        content: `✅ Template **${name}** created with fields: ${fields.join(', ')}.${
+          subcategories.length ? ` Sub-categories: ${subcategories.join(', ')}.` : ''
+        } Body: ${body}${body !== 'GA' ? ` (vetoable: ${vetoable === null ? true : vetoable})` : ''}`,
         ephemeral: true,
       });
     }
@@ -109,10 +147,10 @@ module.exports = {
       const lines = templates.map(
         (t) =>
           `**${t.name}** — ${t.enabled ? '✅ enabled' : '⛔ disabled'} — fields: ${t.fields.join(', ')}${
-            t.requiresSupermajority ? ' — requires supermajority' : ''
-          }${t.allowedRole ? ` — restricted to <@&${t.allowedRole}>` : ''} — body: ${t.body || 'GA'}${
-            (t.body || 'GA') !== 'GA' ? ` (vetoable: ${t.vetoable !== false})` : ''
-          }`
+            t.subcategories && t.subcategories.length ? ` — sub-categories: ${t.subcategories.join(', ')}` : ''
+          }${t.requiresSupermajority ? ' — requires supermajority' : ''}${
+            t.allowedRole ? ` — restricted to <@&${t.allowedRole}>` : ''
+          } — body: ${t.body || 'GA'}${(t.body || 'GA') !== 'GA' ? ` (vetoable: ${t.vetoable !== false})` : ''}`
       );
       return interaction.reply({ content: lines.join('\n'), ephemeral: true });
     }
@@ -137,6 +175,46 @@ module.exports = {
       }
       saveAllTemplates(filtered);
       return interaction.reply({ content: `🗑️ Template **${name}** deleted.`, ephemeral: true });
+    }
+
+    if (sub === 'add-subcategory') {
+      const name = interaction.options.getString('name');
+      const subcategory = interaction.options.getString('subcategory').trim();
+      const templates = getAllTemplates();
+      const t = templates.find((x) => x.name.toLowerCase() === name.toLowerCase());
+      if (!t) return interaction.reply({ content: `❌ No template named **${name}**.`, ephemeral: true });
+
+      t.subcategories = t.subcategories || [];
+      if (t.subcategories.includes(subcategory)) {
+        return interaction.reply({ content: `**${subcategory}** is already a sub-category of **${name}**.`, ephemeral: true });
+      }
+      if (t.subcategories.length >= 25) {
+        return interaction.reply({ content: '❌ A template can have at most 25 sub-categories (a Discord dropdown limit).', ephemeral: true });
+      }
+
+      t.subcategories.push(subcategory);
+      saveAllTemplates(templates);
+      return interaction.reply({ content: `✅ Added sub-category **${subcategory}** to **${name}**. Current: ${t.subcategories.join(', ')}`, ephemeral: true });
+    }
+
+    if (sub === 'remove-subcategory') {
+      const name = interaction.options.getString('name');
+      const subcategory = interaction.options.getString('subcategory').trim();
+      const templates = getAllTemplates();
+      const t = templates.find((x) => x.name.toLowerCase() === name.toLowerCase());
+      if (!t) return interaction.reply({ content: `❌ No template named **${name}**.`, ephemeral: true });
+
+      t.subcategories = t.subcategories || [];
+      if (!t.subcategories.includes(subcategory)) {
+        return interaction.reply({ content: `**${subcategory}** is not currently a sub-category of **${name}**.`, ephemeral: true });
+      }
+
+      t.subcategories = t.subcategories.filter((s) => s !== subcategory);
+      saveAllTemplates(templates);
+      return interaction.reply({
+        content: `✅ Removed sub-category **${subcategory}** from **${name}**. ${t.subcategories.length ? `Remaining: ${t.subcategories.join(', ')}` : 'No sub-categories remain.'}`,
+        ephemeral: true,
+      });
     }
   },
 };
