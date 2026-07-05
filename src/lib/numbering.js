@@ -5,7 +5,7 @@
 const { readJSON, writeJSON } = require('./storage');
 
 function nextResolutionNumber(config) {
-  const counters = readJSON('counters.json') || {};
+  const counters = readJSON('counters.json', {}) || {};
   const { prefix, format, resetYearly } = config.resolutionNumbering;
   const year = new Date().getFullYear();
   const key = resetYearly ? `${prefix}-${year}` : `${prefix}`;
