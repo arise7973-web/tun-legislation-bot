@@ -22,7 +22,7 @@ function findActiveResolutionByMember(userId) {
 }
 
 function getAllResolutions() {
-  return readJSON('resolutions.json') || [];
+  return readJSON('resolutions.json', []) || [];
 }
 
 function saveAllResolutions(list) {
@@ -43,7 +43,7 @@ function upsertResolution(resolution) {
 }
 
 function getAllTemplates() {
-  return readJSON('templates.json') || [];
+  return readJSON('templates.json', []) || [];
 }
 
 function saveAllTemplates(list) {
