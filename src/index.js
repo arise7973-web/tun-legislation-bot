@@ -15,6 +15,7 @@ const {
   TextInputBuilder,
   TextInputStyle,
   ActionRowBuilder,
+  StringSelectMenuBuilder,
 } = require('discord.js');
 
 const { getConfig } = require('./lib/config');
@@ -60,6 +61,25 @@ client.once('ready', () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
   startScheduler(client);
 });
+
+// Builds the pop-up form for a template. If a subcategory was chosen, it's
+// baked into the modal's customId (double-colon-separated, both parts
+// URI-encoded) so we know it again once the member submits the form.
+function buildResolutionModal(templateName, template, subcategory) {
+  const modal = new ModalBuilder()
+    .setCustomId(`propose_modal_${encodeURIComponent(templateName)}::${encodeURIComponent(subcategory || '')}`)
+    .setTitle((subcategory ? `${templateName} — ${subcategory}` : templateName).slice(0, 45));
+
+  for (let i = 0; i < template.fields.length; i++) {
+    const input = new TextInputBuilder()
+      .setCustomId(`field_${i}`)
+      .setLabel(template.fields[i].slice(0, 45))
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(true);
+    modal.addComponents(new ActionRowBuilder().addComponents(input));
+  }
+  return modal;
+}
 
 client.on('interactionCreate', async (interaction) => {
   try {
@@ -130,7 +150,9 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.update({ embeds: [embed], components });
     }
 
-    // 2) Member picked a template from the /propose dropdown -> show the form (modal)
+    // 2) Member picked a template from the /propose dropdown -> either show a
+    // second dropdown for sub-category (if the template has any), or go
+    // straight to the form.
     if (interaction.isStringSelectMenu() && interaction.customId === 'propose_select_template') {
       const templateName = interaction.values[0];
       const template = findTemplate(templateName);
@@ -138,25 +160,39 @@ client.on('interactionCreate', async (interaction) => {
         return interaction.update({ content: '❌ That template is no longer available.', components: [] });
       }
 
-      const modal = new ModalBuilder()
-        .setCustomId(`propose_modal_${encodeURIComponent(templateName)}`)
-        .setTitle(templateName.slice(0, 45));
+      if (template.subcategories && template.subcategories.length > 0) {
+        const menu = new StringSelectMenuBuilder()
+          .setCustomId(`propose_select_subcategory_${encodeURIComponent(templateName)}`)
+          .setPlaceholder('Choose a sub-category...')
+          .addOptions(template.subcategories.slice(0, 25).map((s) => ({ label: s.slice(0, 100), value: s })));
 
-      for (let i = 0; i < template.fields.length; i++) {
-        const input = new TextInputBuilder()
-          .setCustomId(`field_${i}`)
-          .setLabel(template.fields[i].slice(0, 45))
-          .setStyle(TextInputStyle.Paragraph)
-          .setRequired(true);
-        modal.addComponents(new ActionRowBuilder().addComponents(input));
+        return interaction.update({
+          content: `Select the sub-category for **${templateName}**:`,
+          components: [new ActionRowBuilder().addComponents(menu)],
+        });
       }
 
-      return interaction.showModal(modal);
+      return interaction.showModal(buildResolutionModal(templateName, template, null));
+    }
+
+    // 2b) Member picked a sub-category -> show the form
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('propose_select_subcategory_')) {
+      const templateName = decodeURIComponent(interaction.customId.replace('propose_select_subcategory_', ''));
+      const subcategory = interaction.values[0];
+      const template = findTemplate(templateName);
+      if (!template || !template.enabled) {
+        return interaction.update({ content: '❌ That template is no longer available.', components: [] });
+      }
+
+      return interaction.showModal(buildResolutionModal(templateName, template, subcategory));
     }
 
     // 3) Member submitted the resolution form -> create the resolution
     if (interaction.isModalSubmit() && interaction.customId.startsWith('propose_modal_')) {
-      const templateName = decodeURIComponent(interaction.customId.replace('propose_modal_', ''));
+      const raw = interaction.customId.replace('propose_modal_', '');
+      const sepIndex = raw.indexOf('::');
+      const templateName = decodeURIComponent(sepIndex === -1 ? raw : raw.slice(0, sepIndex));
+      const subcategory = sepIndex === -1 ? null : decodeURIComponent(raw.slice(sepIndex + 2)) || null;
       const template = findTemplate(templateName);
       if (!template) {
         return interaction.reply({ content: '❌ That template no longer exists.', ephemeral: true });
@@ -182,8 +218,9 @@ client.on('interactionCreate', async (interaction) => {
       const number = nextResolutionNumber(config);
       const resolution = {
         number,
-        title: `${templateName} — ${fields[template.fields[0]]}`.slice(0, 200),
+        title: `${templateName}${subcategory ? ` — ${subcategory}` : ''} — ${fields[template.fields[0]]}`.slice(0, 200),
         templateName,
+        subcategory,
         fields,
         sponsors: [],
         status: config.sponsorsRequired > 0 ? 'Awaiting Sponsors' : 'Under Administrative Review',
