@@ -25,6 +25,7 @@ function resolutionEmbed(resolution) {
     .setColor(STATUS_COLORS[resolution.status] || 0x2c3e50)
     .addFields(
       { name: 'Category', value: resolution.templateName, inline: true },
+      ...(resolution.subcategory ? [{ name: 'Sub-category', value: resolution.subcategory, inline: true }] : []),
       { name: 'Status', value: resolution.status, inline: true },
       { name: 'Body', value: resolution.body === 'Both' ? 'General Assembly + Security Council' : resolution.body === 'SC' ? 'Security Council' : 'General Assembly', inline: true },
       { name: 'Sponsors', value: resolution.sponsors.length ? resolution.sponsors.map((s) => `<@${s}>`).join(', ') : 'None yet', inline: false }
