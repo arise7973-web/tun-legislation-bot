@@ -3,6 +3,7 @@
 
 const { EmbedBuilder } = require('discord.js');
 const { getConfig } = require('./config');
+const { getMentionPrefix } = require('./mentions');
 
 async function logAudit(client, title, description) {
   try {
@@ -25,16 +26,29 @@ async function logAudit(client, title, description) {
   }
 }
 
-async function notify(client, message) {
+// Sends a public heads-up message. If `body` is given ('GA', 'SC', or
+// 'Both'), the message goes to that body's own notifications channel (so
+// General Assembly and Security Council announcements don't have to share
+// one channel) and gets the configured @everyone/@role mention prepended,
+// if admins have turned that on. Omitting `body` keeps the old behavior:
+// General Assembly's notifications channel, no mention.
+async function notify(client, message, body) {
   try {
     const config = getConfig();
-    const channelId = config.channels.notifications;
-    if (!channelId) return;
+    const bodies = body === 'Both' ? ['GA', 'SC'] : [body || 'GA'];
+    const channelIds = new Set();
 
-    const channel = await client.channels.fetch(channelId).catch(() => null);
-    if (!channel) return;
+    for (const b of bodies) {
+      const channelId = b === 'SC' ? config.securityCouncil.channels.notifications : config.channels.notifications;
+      if (channelId) channelIds.add(channelId);
+    }
 
-    await channel.send(message);
+    const prefix = body ? getMentionPrefix(config, body) : '';
+
+    for (const channelId of channelIds) {
+      const channel = await client.channels.fetch(channelId).catch(() => null);
+      if (channel) await channel.send(`${prefix}${message}`);
+    }
   } catch (err) {
     console.error('Failed to send notification:', err);
   }
