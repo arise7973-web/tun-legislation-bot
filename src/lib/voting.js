@@ -15,6 +15,7 @@ const { getConfig } = require('./config');
 const { upsertResolution, findTemplate } = require('./resolutions');
 const { trackEmbed, resolutionEmbed } = require('./embeds');
 const { logAudit, notify, dmUser } = require('./audit');
+const { getMentionPrefix } = require('./mentions');
 
 function bodiesFor(resolution) {
   return resolution.body === 'Both' ? ['GA', 'SC'] : [resolution.body || 'GA'];
@@ -182,7 +183,8 @@ async function openTrackVote(client, resolution, body) {
     if (channel) {
       const embed = trackEmbed(resolution, body, track);
       const row = buildVoteButtons(resolution.number, body, false, settings.vetoEnabled);
-      const message = await channel.send({ embeds: [embed], components: [row] });
+      const mentionPrefix = getMentionPrefix(config, body === 'OVERRIDE' ? 'GA' : body);
+      const message = await channel.send({ content: mentionPrefix || undefined, embeds: [embed], components: [row] });
       track.messageId = message.id;
       track.channelId = channel.id;
     }
@@ -203,7 +205,7 @@ async function openVoting(client, resolution) {
 
   upsertResolution(resolution);
   await logAudit(client, 'Vote Opened', `**${resolution.number}** — ${resolution.title} (${bodies.join(' + ')})`);
-  await notify(client, `🗳️ Voting is now open for **${resolution.number}** — ${resolution.title}`);
+  await notify(client, `🗳️ Voting is now open for **${resolution.number}** — ${resolution.title}`, resolution.body);
 
   for (const body of bodies) {
     const track = resolution.tracks[body];
@@ -283,7 +285,7 @@ async function finalizeIfDone(client, resolution) {
 
   const summary = bodies.map((b) => `${resolution.tracks[b].label}: ${resolution.tracks[b].result}`).join(' | ');
   await logAudit(client, 'Vote Closed', `**${resolution.number}** — Final Result: ${overall}\n${summary}`);
-  await notify(client, `📜 Voting has closed for **${resolution.number}** — Result: **${overall}**`);
+  await notify(client, `📜 Voting has closed for **${resolution.number}** — Result: **${overall}**`, resolution.body);
   dmUser(client, resolution.submittedBy, `📜 Your resolution **${resolution.number}** — ${resolution.title} has closed. Result: **${overall}**.`);
 
   return resolution;
@@ -341,7 +343,7 @@ async function castVeto(client, resolution, member, reason) {
     'Veto Cast',
     `**${resolution.number}** — Vetoed by ${track.vetoedBy.tag}${reason ? `\nReason: ${reason}` : ''}`
   );
-  await notify(client, `🚫 **${resolution.number}** has been vetoed by a Permanent Security Council Member.`);
+  await notify(client, `🚫 **${resolution.number}** has been vetoed by a Permanent Security Council Member.`, resolution.body);
   dmUser(client, resolution.submittedBy, `🚫 Your resolution **${resolution.number}** — ${resolution.title} has been vetoed by a Permanent Security Council Member.${reason ? ` Reason: ${reason}` : ''}`);
 }
 
@@ -355,7 +357,7 @@ async function openOverrideVote(client, resolution) {
   upsertResolution(resolution);
 
   await logAudit(client, 'Veto Override Started', `**${resolution.number}** — override vote opened.`);
-  await notify(client, `⚖️ A veto override vote has opened for **${resolution.number}**.`);
+  await notify(client, `⚖️ A veto override vote has opened for **${resolution.number}**.`, 'GA');
   return resolution;
 }
 
@@ -380,7 +382,7 @@ async function closeOverrideVote(client, resolution) {
   }
 
   await logAudit(client, 'Veto Override Closed', `**${resolution.number}** — Result: ${resolution.status}`);
-  await notify(client, `⚖️ Veto override vote closed for **${resolution.number}** — Result: **${resolution.status}**`);
+  await notify(client, `⚖️ Veto override vote closed for **${resolution.number}** — Result: **${resolution.status}**`, 'GA');
   dmUser(client, resolution.submittedBy, `⚖️ The veto override vote on your resolution **${resolution.number}** has closed. Result: **${resolution.status}**.`);
   return resolution;
 }
