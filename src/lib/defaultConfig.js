@@ -36,6 +36,11 @@ function getDefaultConfig() {
     liveResultsDuringVote: true,
     dmNotifications: true,
     oneResolutionPerMember: true,
+    announcements: {
+      mentionsEnabled: false,
+      ga: { mentionType: 'none', roleId: '' },
+      sc: { mentionType: 'none', roleId: '' },
+    },
     amendments: {
       enabled: true,
       debateDurationMinutes: 360,
@@ -59,6 +64,7 @@ function getDefaultConfig() {
         debate: '',
         voting: '',
         archive: '',
+        notifications: '',
       },
       quorumPercent: 50,
       majorityPercent: 50,
