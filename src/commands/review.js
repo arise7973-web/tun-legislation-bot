@@ -13,6 +13,7 @@ const { findResolution, upsertResolution } = require('../lib/resolutions');
 const { resolutionEmbed } = require('../lib/embeds');
 const { logAudit, notify, dmUser } = require('../lib/audit');
 const { getDebateInfo } = require('../lib/voting');
+const { getMentionPrefix } = require('../lib/mentions');
 
 module.exports = {
   category: 'Legislation',
@@ -84,19 +85,21 @@ module.exports = {
     }
 
     if (action === 'approve' && debateInfo) {
+      const mentionPrefix = getMentionPrefix(config, resolution.body);
       for (const channelId of debateInfo.channelIds) {
         interaction.client.channels
           .fetch(channelId)
-          .then((channel) =>
-            channel &&
-            channel.send({
-              content: `📣 Debate is now open for **${resolution.number}**. Debate closes <t:${Math.floor(resolution.debate.endsAt / 1000)}:R>.`,
-              embeds: [resolutionEmbed(resolution)],
-            })
+          .then(
+            (channel) =>
+              channel &&
+              channel.send({
+                content: `${mentionPrefix}📣 Debate is now open for **${resolution.number}**. Debate closes <t:${Math.floor(resolution.debate.endsAt / 1000)}:R>.`,
+                embeds: [resolutionEmbed(resolution)],
+              })
           )
           .catch((err) => console.error('Failed to post to debate channel:', err));
       }
-      notify(interaction.client, `📣 **${resolution.number}** has entered debate.`).catch((err) => console.error(err));
+      notify(interaction.client, `📣 **${resolution.number}** has entered debate.`, resolution.body).catch((err) => console.error(err));
     }
   },
 };
