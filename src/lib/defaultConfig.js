@@ -36,6 +36,13 @@ function getDefaultConfig() {
     liveResultsDuringVote: true,
     dmNotifications: true,
     oneResolutionPerMember: true,
+    amendments: {
+      enabled: true,
+      debateDurationMinutes: 360,
+      votingDurationMinutes: 360,
+      quorumPercent: 50,
+      majorityPercent: 50,
+    },
     resolutionNumbering: {
       prefix: 'UNGA',
       format: '{prefix}/{year}/{seq}',
