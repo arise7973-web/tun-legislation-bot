@@ -18,6 +18,7 @@ const {
 } = require('discord.js');
 
 const { getConfig } = require('./lib/config');
+const { initializeDataFiles } = require('./lib/storage');
 const { isEligibleVoter, isSCMember, isSCPermanentMember, getVoteWeight } = require('./lib/permissions');
 const { findTemplate, findResolution, getAllResolutions, upsertResolution, findActiveResolutionByMember } = require('./lib/resolutions');
 const { nextResolutionNumber } = require('./lib/numbering');
@@ -26,6 +27,13 @@ const { logAudit, notify } = require('./lib/audit');
 const { refreshTrackMessage, castVeto, getReviewChannelIds } = require('./lib/voting');
 const { startScheduler } = require('./lib/scheduler');
 const { renderHelpPage } = require('./lib/help');
+
+// Make sure /data and every JSON file inside it exist before anything else
+// runs. This matters most on hosts like Railway, where a freshly mounted
+// persistent volume starts out completely empty - without this, the very
+// first command would crash trying to read a file that doesn't exist yet.
+initializeDataFiles();
+console.log('Data files ready (config.json, resolutions.json, templates.json, counters.json).');
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
