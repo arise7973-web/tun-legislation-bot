@@ -19,6 +19,14 @@ const STATUS_COLORS = {
   Archived: 0x2c3e50,
 };
 
+const AMENDMENT_TYPE_LABELS = {
+  add: 'Add Text',
+  remove: 'Remove Text',
+  replace: 'Replace Text',
+  format: 'Correct Formatting',
+  reference: 'Correct References',
+};
+
 function resolutionEmbed(resolution) {
   const embed = new EmbedBuilder()
     .setTitle(`${resolution.number} — ${resolution.title}`)
@@ -60,6 +68,16 @@ function resolutionEmbed(resolution) {
   }
   if (resolution.overrideNote) {
     embed.addFields({ name: 'Veto Override', value: resolution.overrideNote, inline: false });
+  }
+
+  // Amendment history, if any amendments were proposed on this resolution.
+  if (resolution.amendments && resolution.amendments.length) {
+    const lines = resolution.amendments.map((a) => {
+      const label = AMENDMENT_TYPE_LABELS[a.type] || a.type;
+      const note = a.appliedNote ? ` — ${a.appliedNote}` : '';
+      return `**${a.id}** (${label} → ${a.targetField}): **${a.status}**${note}`;
+    });
+    embed.addFields({ name: 'Amendment History', value: lines.join('\n').slice(0, 1024), inline: false });
   }
 
   return embed;
@@ -112,4 +130,45 @@ function trackEmbed(resolution, body, track) {
   return embed;
 }
 
-module.exports = { resolutionEmbed, trackEmbed };
+// Renders the interactive voting card for a single amendment.
+function amendmentEmbed(resolution, amendment) {
+  const vote = amendment.vote;
+  const ballots = Object.values((vote && vote.ballots) || {});
+  const yes = ballots.filter((v) => v.choice === 'yes');
+  const no = ballots.filter((v) => v.choice === 'no');
+  const abstain = ballots.filter((v) => v.choice === 'abstain');
+  const weightedYes = yes.reduce((s, v) => s + v.weight, 0);
+  const weightedNo = no.reduce((s, v) => s + v.weight, 0);
+  const weightedAbstain = abstain.reduce((s, v) => s + v.weight, 0);
+  const votesCast = ballots.length;
+  const eligibleCount = vote ? vote.eligibleCount : 0;
+  const participation = eligibleCount > 0 ? ((votesCast / eligibleCount) * 100).toFixed(1) : '0.0';
+  const closed = vote ? vote.closed : false;
+
+  const embed = new EmbedBuilder()
+    .setTitle(`📝 Amendment ${amendment.id} to ${resolution.number}`)
+    .setColor(closed ? (amendment.status === 'Approved' ? 0x2ecc71 : 0xe74c3c) : 0x3498db)
+    .addFields(
+      { name: 'Type', value: AMENDMENT_TYPE_LABELS[amendment.type] || amendment.type, inline: true },
+      { name: 'Target Field', value: amendment.targetField, inline: true },
+      { name: 'Sponsor', value: `<@${amendment.sponsor}>`, inline: true },
+      { name: 'Original Text', value: amendment.originalText ? amendment.originalText.slice(0, 1024) : '—', inline: false },
+      { name: 'New Text', value: amendment.newText ? amendment.newText.slice(0, 1024) : '—', inline: false },
+      { name: 'Status', value: closed ? `Closed — ${amendment.status}` : amendment.status, inline: false }
+    );
+
+  if (vote) {
+    embed.addFields(
+      { name: 'Deadline', value: `<t:${Math.floor(vote.endsAt / 1000)}:R>`, inline: true },
+      { name: 'Eligible Voters', value: `${eligibleCount}`, inline: true },
+      { name: 'Participation', value: `${participation}%`, inline: true },
+      { name: '✅ Yes', value: `Weighted: ${weightedYes}`, inline: true },
+      { name: '❌ No', value: `Weighted: ${weightedNo}`, inline: true },
+      { name: '⚪ Abstain', value: `Weighted: ${weightedAbstain}`, inline: true }
+    );
+  }
+
+  return embed;
+}
+
+module.exports = { resolutionEmbed, trackEmbed, amendmentEmbed };
