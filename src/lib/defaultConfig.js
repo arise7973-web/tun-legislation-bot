@@ -64,6 +64,7 @@ function getDefaultConfig() {
         debate: '',
         voting: '',
         archive: '',
+        audit: '',
         notifications: '',
       },
       quorumPercent: 50,
