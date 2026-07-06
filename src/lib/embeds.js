@@ -31,6 +31,11 @@ const STATUS_COLORS = {
   Withdrawn: 0x6b7280,
   Expired: 0x6b7280,
   Archived: 0x3d4451,
+  Registration: 0xc9972c,
+  Campaign: 0x2f6fa3,
+  Certified: 0x2e8b57,
+  Cancelled: 0xa33a3a,
+  'Tied - Awaiting Manual Resolution': 0xb5651d,
 };
 
 const STATUS_ICONS = {
@@ -48,6 +53,11 @@ const STATUS_ICONS = {
   Withdrawn: '⚪',
   Expired: '⚪',
   Archived: '⚪',
+  Registration: '🟡',
+  Campaign: '🔵',
+  Certified: '🟢',
+  Cancelled: '🔴',
+  'Tied - Awaiting Manual Resolution': '🟠',
 };
 
 const AMENDMENT_TYPE_LABELS = {
@@ -246,4 +256,4 @@ function amendmentEmbed(resolution, amendment) {
   return embed;
 }
 
-module.exports = { resolutionEmbed, trackEmbed, amendmentEmbed };
+module.exports = { resolutionEmbed, trackEmbed, amendmentEmbed, DIVIDER, BLANK, STATUS_COLORS, STATUS_ICONS, quoteBlock };
