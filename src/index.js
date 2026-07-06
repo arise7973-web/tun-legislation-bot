@@ -35,6 +35,7 @@ const {
 } = require('./lib/amendments');
 const { startScheduler } = require('./lib/scheduler');
 const { renderHelpPage } = require('./lib/help');
+const { renderConfigView } = require('./lib/configView');
 
 // Make sure /data and every JSON file inside it exist before anything else
 // runs. This matters most on hosts like Railway, where a freshly mounted
@@ -207,6 +208,13 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.update({ embeds: [embed], components });
     }
 
+    // 2c) Admin picked a category from the /config view dropdown -> show that category
+    if (interaction.isStringSelectMenu() && interaction.customId === 'configview_select') {
+      const category = interaction.values[0];
+      const { embed, components } = renderConfigView(getConfig(), category);
+      return interaction.update({ embeds: [embed], components });
+    }
+
     // 2) Member picked a template from the /propose dropdown -> either show a
     // second dropdown for sub-category (if the template has any), or go
     // straight to the form.
@@ -300,8 +308,8 @@ client.on('interactionCreate', async (interaction) => {
         ephemeral: true,
       });
 
-      logAudit(client, 'Resolution Created', `**${resolution.number}** — ${resolution.title}\nBy: ${interaction.user.tag}`).catch((err) => console.error(err));
-      notify(client, `📝 A new resolution has been submitted: **${resolution.number}** — ${resolution.title}`).catch((err) => console.error(err));
+      logAudit(client, 'Resolution Created', `**${resolution.number}** — ${resolution.title}\nBy: ${interaction.user.tag}`, resolution.body).catch((err) => console.error(err));
+      notify(client, `📝 A new resolution has been submitted: **${resolution.number}** — ${resolution.title}`, resolution.body).catch((err) => console.error(err));
 
       const reviewChannelIds = getReviewChannelIds(resolution, config);
       for (const channelId of reviewChannelIds) {
@@ -368,7 +376,7 @@ client.on('interactionCreate', async (interaction) => {
           .catch((err) => console.error('Failed to post amendment to debate channel:', err));
       }
 
-      logAudit(client, 'Amendment Proposed', `**${resolution.number}** ${amendment.id} (${AMENDMENT_TYPE_LABELS[type]} → ${targetField}) by ${interaction.user.tag}`).catch((err) => console.error(err));
+      logAudit(client, 'Amendment Proposed', `**${resolution.number}** ${amendment.id} (${AMENDMENT_TYPE_LABELS[type]} → ${targetField}) by ${interaction.user.tag}`, resolution.body).catch((err) => console.error(err));
       if (resolution.submittedBy !== interaction.user.id) {
         dmUser(client, resolution.submittedBy, `📝 A new amendment (${amendment.id}) has been proposed on your resolution **${resolution.number}**.`);
       }
@@ -410,7 +418,7 @@ client.on('interactionCreate', async (interaction) => {
       });
 
       refreshAmendmentMessage(client, resolution, amendment).catch((err) => console.error('Failed to refresh amendment message:', err));
-      logAudit(client, 'Amendment Vote Cast', `${interaction.user.tag} voted on amendment ${amendment.id} of ${resolution.number}.`).catch((err) => console.error(err));
+      logAudit(client, 'Amendment Vote Cast', `${interaction.user.tag} voted on amendment ${amendment.id} of ${resolution.number}.`, resolution.body).catch((err) => console.error(err));
       return;
     }
 
@@ -464,7 +472,7 @@ client.on('interactionCreate', async (interaction) => {
       });
 
       refreshTrackMessage(client, resolution, body).catch((err) => console.error('Failed to refresh vote message:', err));
-      logAudit(client, 'Vote Cast', `${interaction.user.tag} voted on ${resolution.number} (${track.label}).`).catch((err) => console.error('Failed to write audit log:', err));
+      logAudit(client, 'Vote Cast', `${interaction.user.tag} voted on ${resolution.number} (${track.label}).`, body === 'OVERRIDE' ? 'GA' : body).catch((err) => console.error('Failed to write audit log:', err));
       return;
     }
   } catch (err) {
