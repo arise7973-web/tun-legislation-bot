@@ -5,14 +5,23 @@ const { EmbedBuilder } = require('discord.js');
 const { getConfig } = require('./config');
 const { getMentionPrefix } = require('./mentions');
 
-async function logAudit(client, title, description) {
+// Sends a permanent record of an important action to the audit log. If
+// `body` is given ('GA', 'SC', or 'Both'), it goes to that body's OWN audit
+// channel - kept fully separate from the other body's log, since Security
+// Council business is often meant to stay visible only to those who should
+// see it. Omitting `body` keeps the old behavior: the General Assembly's
+// audit channel (used for actions that aren't tied to a specific body, like
+// permission or template changes).
+async function logAudit(client, title, description, body) {
   try {
     const config = getConfig();
-    const channelId = config.channels.audit;
-    if (!channelId) return; // Admin hasn't set an audit channel yet, so skip silently.
+    const bodies = body === 'Both' ? ['GA', 'SC'] : [body || 'GA'];
+    const channelIds = new Set();
 
-    const channel = await client.channels.fetch(channelId).catch(() => null);
-    if (!channel) return;
+    for (const b of bodies) {
+      const channelId = b === 'SC' ? config.securityCouncil.channels.audit : config.channels.audit;
+      if (channelId) channelIds.add(channelId);
+    }
 
     const embed = new EmbedBuilder()
       .setTitle(`📋 ${title}`)
@@ -20,7 +29,10 @@ async function logAudit(client, title, description) {
       .setColor(0x5865f2)
       .setTimestamp();
 
-    await channel.send({ embeds: [embed] });
+    for (const channelId of channelIds) {
+      const channel = await client.channels.fetch(channelId).catch(() => null);
+      if (channel) await channel.send({ embeds: [embed] });
+    }
   } catch (err) {
     console.error('Failed to write audit log:', err);
   }
