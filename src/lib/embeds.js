@@ -12,6 +12,7 @@
 // glance or on a screen reader.
 
 const { EmbedBuilder } = require('discord.js');
+const { getConfig } = require('./config');
 
 const DIVIDER = '━'.repeat(28);
 const BLANK = '\u200b'; // zero-width space, used as an invisible field name for divider rows
@@ -68,6 +69,19 @@ const AMENDMENT_TYPE_LABELS = {
   reference: 'Correct References',
 };
 
+// Whether to reveal the Yes/No/Abstain breakdown (raw and weighted counts)
+// anywhere at all - during voting or after it closes. When this is off,
+// only aggregate participation and the final outcome are ever shown, which
+// matters most for small bodies like the Security Council: with only a
+// couple of Permanent Members holding distinct vote weights, even a
+// post-close "weighted No: 3" can be enough to deduce exactly who cast it.
+// Turning Public Voting off (and leaving Live Results off) hides the
+// breakdown completely, at every stage, closing that inference gap.
+function shouldShowVoteBreakdown() {
+  const config = getConfig();
+  return !!(config.publicVoting || config.liveResultsDuringVote);
+}
+
 function bodyLabel(body) {
   if (body === 'Both') return 'General Assembly + Security Council';
   if (body === 'SC') return 'Security Council';
@@ -119,12 +133,15 @@ function resolutionEmbed(resolution) {
   if (resolution.tracks) {
     const closedTracks = Object.entries(resolution.tracks).filter(([, track]) => track.closed);
     if (closedTracks.length) {
+      const showBreakdown = shouldShowVoteBreakdown();
       embed.addFields({ name: BLANK, value: DIVIDER, inline: false });
       for (const [, track] of closedTracks) {
         const icon = STATUS_ICONS[track.result] || '⚪';
         let value = `${icon} **${(track.result || '').toUpperCase()}**`;
         if (track.tally) {
-          value += `\nWeighted Yes **${track.tally.weightedYes}**  ·  Weighted No **${track.tally.weightedNo}**  ·  Participation **${track.tally.participation.toFixed(1)}%**`;
+          value += showBreakdown
+            ? `\nWeighted Yes **${track.tally.weightedYes}**  ·  Weighted No **${track.tally.weightedNo}**  ·  Participation **${track.tally.participation.toFixed(1)}%**`
+            : `\nParticipation **${track.tally.participation.toFixed(1)}%** *(anonymous vote - breakdown not disclosed)*`;
         }
         embed.addFields({ name: `${track.label.toUpperCase()} — VOTE RESULT`, value, inline: false });
       }
@@ -178,6 +195,7 @@ function trackEmbed(resolution, body, track) {
   const participation = track.eligibleCount > 0 ? ((votesCast / track.eligibleCount) * 100).toFixed(1) : '0.0';
   const recordType = body === 'OVERRIDE' ? 'VETO OVERRIDE BALLOT' : 'OFFICIAL BALLOT';
   const statusLabel = track.closed ? `${STATUS_ICONS[track.result] || '⚪'} **CLOSED — ${(track.result || '').toUpperCase()}**` : '🟣 **VOTING OPEN**';
+  const showBreakdown = shouldShowVoteBreakdown();
 
   const embed = new EmbedBuilder()
     .setAuthor({ name: letterhead(body === 'OVERRIDE' ? 'GA' : body, recordType) })
@@ -195,11 +213,22 @@ function trackEmbed(resolution, body, track) {
       { name: BLANK, value: DIVIDER, inline: false },
       { name: 'ELIGIBLE', value: `${track.eligibleCount}`, inline: true },
       { name: 'CAST', value: `${votesCast}`, inline: true },
-      { name: 'PARTICIPATION', value: `${participation}%`, inline: true },
+      { name: 'PARTICIPATION', value: `${participation}%`, inline: true }
+    );
+
+  if (showBreakdown) {
+    embed.addFields(
       { name: '✅ YES', value: `${rawYes} raw  ·  **${weightedYes}** weighted`, inline: false },
       { name: '❌ NO', value: `${rawNo} raw  ·  **${weightedNo}** weighted`, inline: false },
       { name: '⚪ ABSTAIN', value: `${rawAbstain} raw  ·  **${weightedAbstain}** weighted`, inline: false }
     );
+  } else {
+    embed.addFields({
+      name: BLANK,
+      value: '*This is an anonymous vote — individual choices and the Yes/No/Abstain breakdown are never disclosed, only aggregate turnout and the final result.*',
+      inline: false,
+    });
+  }
 
   if (track.vetoEnabled) {
     embed.addFields({ name: '🚫 VETO POWER', value: 'Permanent Security Council Members may veto using the button below.', inline: false });
@@ -242,15 +271,20 @@ function amendmentEmbed(resolution, amendment) {
     );
 
   if (vote) {
+    const showBreakdown = shouldShowVoteBreakdown();
     embed.addFields(
       { name: BLANK, value: DIVIDER, inline: false },
       { name: 'CLOSES', value: `<t:${Math.floor(vote.endsAt / 1000)}:R>`, inline: true },
       { name: 'ELIGIBLE', value: `${eligibleCount}`, inline: true },
-      { name: 'PARTICIPATION', value: `${participation}%`, inline: true },
-      { name: '✅ YES', value: `**${weightedYes}** weighted`, inline: true },
-      { name: '❌ NO', value: `**${weightedNo}** weighted`, inline: true },
-      { name: '⚪ ABSTAIN', value: `**${weightedAbstain}** weighted`, inline: true }
+      { name: 'PARTICIPATION', value: `${participation}%`, inline: true }
     );
+    if (showBreakdown) {
+      embed.addFields(
+        { name: '✅ YES', value: `**${weightedYes}** weighted`, inline: true },
+        { name: '❌ NO', value: `**${weightedNo}** weighted`, inline: true },
+        { name: '⚪ ABSTAIN', value: `**${weightedAbstain}** weighted`, inline: true }
+      );
+    }
   }
 
   return embed;
